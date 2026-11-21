@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>フェリチン・鉄欠乏性貧血スクリーニング</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-red-950 min-h-screen p-4">
+<div class="max-w-lg mx-auto">
+  <h1 class="text-2xl font-bold text-red-200 text-center mb-1">鉄欠乏性貧血スクリーニング</h1>
+  <p class="text-red-400 text-center text-sm mb-4">フェリチン・ヘモグロビン・MCV入力で段階判定</p>
+
+  <div class="bg-red-900 rounded-2xl p-5 mb-4">
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div>
+        <label class="block text-red-300 text-xs mb-1" for="sex">性別・年齢区分</label>
+        <select id="sex" class="w-full bg-red-800 text-white rounded-lg p-2 border border-red-700 outline-none" aria-label="性別・年齢区分">
+          <option value="adult_m">成人男性</option>
+          <option value="adult_f">成人女性</option>
+          <option value="child">小児（12歳以下）</option>
+          <option value="elderly">高齢者（65歳以上）</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div>
+        <label class="block text-red-300 text-xs mb-1" for="ferritin">フェリチン (ng/mL)</label>
+        <input type="number" id="ferritin" placeholder="30" min="0" max="1000" class="w-full bg-red-800 text-white rounded-lg p-2 border border-red-700 focus:border-red-400 outline-none" aria-label="フェリチン ng/mL">
+      </div>
+      <div>
+        <label class="block text-red-300 text-xs mb-1" for="hgb">ヘモグロビン (g/dL)</label>
+        <input type="number" id="hgb" placeholder="13.0" min="0" max="25" step="0.1" class="w-full bg-red-800 text-white rounded-lg p-2 border border-red-700 focus:border-red-400 outline-none" aria-label="ヘモグロビン g/dL">
+      </div>
+      <div>
+        <label class="block text-red-300 text-xs mb-1" for="mcv">MCV (fL)</label>
+        <input type="number" id="mcv" placeholder="85" min="50" max="130" class="w-full bg-red-800 text-white rounded-lg p-2 border border-red-700 focus:border-red-400 outline-none" aria-label="MCV fL">
+      </div>
+    </div>
+    <button onclick="assess()" class="w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold transition">スクリーニング実施</button>
+  </div>
+
+  <div id="result" class="hidden"></div>
+
+  <div class="bg-red-900 rounded-2xl p-4 mt-4">
+    <h3 class="text-red-200 font-bold mb-2 text-sm">参照範囲（成人）</h3>
+    <table class="w-full text-xs text-red-300">
+      <thead><tr class="text-red-400 border-b border-red-800">
+        <th class="text-left py-1">項目</th><th class="text-center">男性</th><th class="text-center">女性</th>
+      </tr></thead>
+      <tbody>
+        <tr class="border-b border-red-800"><td class="py-1">フェリチン</td><td class="text-center">12〜300 ng/mL</td><td class="text-center">12〜150 ng/mL</td></tr>
+        <tr class="border-b border-red-800"><td class="py-1">ヘモグロビン</td><td class="text-center">13.5〜17.5 g/dL</td><td class="text-center">12.0〜16.0 g/dL</td></tr>
+        <tr><td class="py-1">MCV</td><td class="text-center" colspan="2">80〜100 fL</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="text-red-700 text-xs text-center mt-2">※本ツールは医学教育目的です。診断・治療は医師にご相談ください。</p>
+</div>
+
+<script>
+const refRanges = {
+  adult_m: { ferritin:[12,300], hgb:[13.5,17.5], mcv:[80,100] },
+  adult_f: { ferritin:[12,150], hgb:[12.0,16.0], mcv:[80,100] },
+  child:   { ferritin:[10,140], hgb:[11.0,14.0], mcv:[75,87] },
+  elderly: { ferritin:[12,300], hgb:[12.0,17.0], mcv:[80,100] },
+};
+
+const foods = [
+  { name:'レバー（豚）', iron:'13.0mg/100g', note:'ヘム鉄・吸収率高' },
+  { name:'あさり', iron:'3.8mg/100g', note:'ヘム鉄・旨みも豊富' },
+  { name:'ほうれん草', iron:'2.0mg/100g', note:'非ヘム鉄・ビタミンCと摂取' },
+  { name:'大豆製品（豆腐等）', iron:'1.5mg/100g', note:'非ヘム鉄・発酵食品も効果的' },
+  { name:'赤身肉（牛）', iron:'2.5mg/100g', note:'ヘム鉄・吸収率20〜30%' },
+];
+
+function assess() {
+  const ferritin = parseFloat(document.getElementById('ferritin').value);
+  const hgb = parseFloat(document.getElementById('hgb').value);
+  const mcv = parseFloat(document.getElementById('mcv').value);
+  const sex = document.getElementById('sex').value;
+
+  if (isNaN(ferritin) || isNaN(hgb) || isNaN(mcv)) {
+    alert('全ての値を入力してください');
+    return;
+  }
+
+  const ref = refRanges[sex];
+  const lowFerritin = ferritin < ref.ferritin[0];
+  const lowHgb = hgb < ref.hgb[0];
+  const lowMcv = mcv < ref.mcv[0];
+
+  let stage, stageLabel, stageCls, desc;
+  if (!lowFerritin && !lowHgb && !lowMcv) {
+    stage = 0; stageLabel = '正常'; stageCls = 'bg-green-900 text-green-200';
+    desc = '現在の値は参照範囲内です。鉄欠乏性貧血のリスクは低いと考えられます。';
+  } else if (lowFerritin && !lowHgb && !lowMcv) {
+    stage = 1; stageLabel = '鉄枯渇期'; stageCls = 'bg-yellow-900 text-yellow-200';
+    desc = '貯蔵鉄（フェリチン）が低下しています。ヘモグロビン産生にはまだ影響していませんが、早期の食事改善・補充が推奨されます。';
+  } else if (lowFerritin && !lowHgb && lowMcv) {
+    stage = 2; stageLabel = '鉄欠乏期（赤血球産生低下）'; stageCls = 'bg-orange-900 text-orange-200';
+    desc = '鉄貯蔵の枯渇が進み赤血球が小型化しています（小球性）。ヘモグロビンはまだ正常域ですが、鉄剤・食事改善が必要です。';
+  } else if (lowFerritin && lowHgb) {
+    stage = 3; stageLabel = '鉄欠乏性貧血'; stageCls = 'bg-red-800 text-red-200';
+    desc = '鉄欠乏性貧血の基準を満たしています。医師への受診・鉄剤治療が必要です。疲労感・動悸・頭痛・めまいなどの症状がある場合は早急に受診してください。';
+  } else {
+    stage = 0; stageLabel = '参照外パターン'; stageCls = 'bg-gray-800 text-gray-200';
+    desc = '値のパターンが典型的な鉄欠乏のパターンと一致しません。他の原因（溶血性貧血、慢性疾患等）の可能性も考慮してください。医師への相談を推奨します。';
+  }
+
+  const result = document.getElementById('result');
+  result.innerHTML = ''; // xss-ok: static template, no user input
+  result.classList.remove('hidden');
+
+  const stageBox = document.createElement('div');
+  stageBox.className = `${stageCls} rounded-2xl p-5 mb-4`;
+  const stageTitle = document.createElement('div');
+  stageTitle.className = 'text-xl font-bold mb-2';
+  stageTitle.textContent = '判定: ' + stageLabel;
+  const stageDesc = document.createElement('div');
+  stageDesc.className = 'text-sm';
+  stageDesc.textContent = desc;
+  stageBox.appendChild(stageTitle);
+  stageBox.appendChild(stageDesc);
+  result.appendChild(stageBox);
+
+  // Values summary
+  const valBox = document.createElement('div');
+  valBox.className = 'bg-red-900 rounded-2xl p-4 mb-4';
+  const valTitle = document.createElement('div');
+  valTitle.className = 'text-red-200 font-bold text-sm mb-2';
+  valTitle.textContent = '入力値と基準値の比較';
+  valBox.appendChild(valTitle);
+
+  const rows = [
+    { label:'フェリチン', val:ferritin, unit:'ng/mL', low:ref.ferritin[0], high:ref.ferritin[1] },
+    { label:'ヘモグロビン', val:hgb, unit:'g/dL', low:ref.hgb[0], high:ref.hgb[1] },
+    { label:'MCV', val:mcv, unit:'fL', low:ref.mcv[0], high:ref.mcv[1] },
+  ];
+  rows.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'flex justify-between items-center border-b border-red-800 py-2 text-sm';
+    const label = document.createElement('span');
+    label.className = 'text-red-300';
+    label.textContent = r.label;
+    const valSpan = document.createElement('span');
+    const isLow = r.val < r.low;
+    const isHigh = r.val > r.high;
+    valSpan.className = isLow || isHigh ? 'text-red-300 font-bold' : 'text-green-300 font-bold';
+    valSpan.textContent = r.val + ' ' + r.unit + (isLow ? ' ↓' : isHigh ? ' ↑' : ' ✓');
+    const refSpan = document.createElement('span');
+    refSpan.className = 'text-red-500 text-xs';
+    refSpan.textContent = `基準: ${r.low}〜${r.high}`;
+    row.appendChild(label);
+    row.appendChild(valSpan);
+    row.appendChild(refSpan);
+    valBox.appendChild(row);
+  });
+  result.appendChild(valBox);
+
+  if (stage > 0) {
+    const foodBox = document.createElement('div');
+    foodBox.className = 'bg-red-900 rounded-2xl p-4';
+    const foodTitle = document.createElement('div');
+    foodTitle.className = 'text-red-200 font-bold text-sm mb-2';
+    foodTitle.textContent = '鉄分豊富な食品';
+    foodBox.appendChild(foodTitle);
+    foods.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'flex justify-between border-b border-red-800 py-1.5 text-xs';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'text-red-200';
+      nameSpan.textContent = f.name;
+      const ironSpan = document.createElement('span');
+      ironSpan.className = 'text-orange-300 font-bold';
+      ironSpan.textContent = f.iron;
+      const noteSpan = document.createElement('span');
+      noteSpan.className = 'text-red-400';
+      noteSpan.textContent = f.note;
+      div.appendChild(nameSpan);
+      div.appendChild(ironSpan);
+      div.appendChild(noteSpan);
+      foodBox.appendChild(div);
+    });
+    result.appendChild(foodBox);
+  }
+}
+</script>
+</body>
+</html>
